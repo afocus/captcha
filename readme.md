@@ -34,8 +34,8 @@ cap = captcha.New()
 cap.SetFont("comic.ttf")
 cap.SetOpt(
     4, // 验证码文字数量 string length
-    3, // 文字模式 0:纯数字 1:小写字母 2:大小写字母 3:数字+大小写字母 string modal
-    10, // 干扰强度 disturbance
+    captcha.ALL, // 文字模式 0:纯数字 1:小写字母 2:大小写字母 3:数字+大小写字母 string modal
+    captcha.Normal, // 干扰强度 disturbance
     captcha.Color{255,0,0}, // 文字以及干扰线颜色，可以设置多个 font color
     captcha.Color{0,0,255},
 )

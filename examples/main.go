@@ -17,8 +17,7 @@ func main() {
 		panic(err.Error())
 	}
 
-	// 不调用SetOpt时 默认为(4,0,4,Color{0,0,0})
-	cap.SetOpt(5, 3, 6)
+	cap.SetOpt(5, captcha.ALL, captcha.NORMAL)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		img, str := cap.Create(128, 64)

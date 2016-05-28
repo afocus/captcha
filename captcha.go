@@ -35,10 +35,17 @@ const (
 	ALL   = 3 // 全部
 )
 
+const (
+	NORMAL = 6
+	MEDIUM = 10
+	HIGH   = 16
+)
+
 func New() *Captcha {
 	c := &Captcha{
 		strNum:      4,
-		disturbance: 6,
+		disturbance: NORMAL,
+		modal:       NUM,
 	}
 	c.colors = []color.Color{color.Black}
 	return c
