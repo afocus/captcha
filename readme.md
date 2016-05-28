@@ -12,6 +12,12 @@
 4. 中文注释:) (你能看懂，自己修改成自己用的)
 
 
+## demo
+
+![color](http://afocus.github.io/captcha/demo1.png)
+
+![sample](http://afocus.github.io/captcha/demo2.png)
+
 ## 使用 Start using it
 
 Download and install it:
