@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title></title>
+    <title>golang captcha</title>
     <meta charset="utf-8"/>
     <style>
-body{margin:0;padding:0;background: #eee}
+body{margin:0;padding:0;background: #fafafa;font-family: Helvetica, arial, nimbussansl, liberationsans, freesans, clean, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"}
 
 .head{text-align: center;padding:80px 30px 100px;background-color: #fff;}
 .head>a{
@@ -12,17 +12,28 @@ body{margin:0;padding:0;background: #eee}
     border-radius: 20px;
     color:#1aaf5d;
     border:2px #1aaf5d solid;
-    text-decoration: none
+    text-decoration: none;
+    vertical-align: middle;
+    display: inline-block;
+    line-height: 24px;
+    font-weight: 700;
+    font-size: 20px;
 }
+
 h1{font-size: 72px;font-weight: 500}
 h1>small{font-size: 30%;display:block;color:#aaa;font-weight: 200;padding-top: 20px}
 h2{font-weight: 500}
 pre{
-    background: #fff;
+    background: #000033;
     padding:20px;
     border-radius: 10px;
-    font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
-    font-size: 16px;
+}
+code{
+    font-family: "Lucida Console", "Monaco", monospace;
+    font-size: 13px;
+    line-height: 18px;
+    color:#fff;
+    text-shadow: #000 0 0 1px;
 }
 .body{margin: 60px auto; max-width: 720px;}
 .body:after{
@@ -30,11 +41,27 @@ pre{
     display: block;
     clear: both
 }
-ul{list-style: none;padding:0;margin:20px}
-ul>li{float: left;width: 50%; text-align: center}
-
-
+ul:after{clear: both;content: "";display: block}
+ul{list-style: none;padding:20px 0;margin:0;}
+ul>li{float: left;width: 33.33333%; text-align: center}
+ul>li img{border-radius: 10px;}
+ul>li a{border-radius: 10px;
+    color:#1aaf5d;
+    padding:4px 16px;background: #fff;
+    border:2px #1aaf5d solid;
+    text-decoration: none}
+.pl-c{color: yellow}
+.pl-v {color: #ed6a43;}
+.pl-num{color:#0086b3}
+.pl-str{color: #1aaf5d}
     </style>
+    <script>
+        function reloadCaptcha(index){
+            var img = document.getElementById("captchas").getElementsByTagName("img")[index];
+            var d = new Date();
+            img.src = "http://115.28.182.181:8123/"+index+"?"+d.getTime();
+        }
+    </script>
 </head>
 <body>
 <div class="head">
@@ -48,16 +75,18 @@ ul>li{float: left;width: 50%; text-align: center}
         <pre><code>go get github.com/afocus/captcha</code></pre>
         
         <h2>How to use</h2>
-        <pre><code>cap = captcha.New()
-cap.SetFont("comic.ttf")
-img,str := cap.Create(4,captcha.NUM)</code></pre>
+        <pre><code><span class="pl-v">cap</span> := captcha.New()
+<span class="pl-c">// Must set a font, Other settings have default values</span>
+cap.SetFont(<span class="pl-str">"comic.ttf"</span>)
+<span class="pl-v">img</span>, <span class="pl-v">str</span> := cap.Create(<span class="pl-num">4</span>, captcha.NUM)</code></pre>
     </div>
     
     <div>
     <h2>Demo</h2>
-    <ul>
-        <li><img src="demo1.png"/><p>simple <a href="#">reload</a></p></li>
-        <li><img src="demo1.png"/><p>complex <a href="#">reload</a></p></li>
+    <ul id="captchas">
+        <li><img src="http://115.28.182.181:8123/0"/><p>backgroundColor</p><a href="javascript:reloadCaptcha(0)">reload</a></li>
+        <li><img src="http://115.28.182.181:8123/1"/><p>simple</p><a href="javascript:reloadCaptcha(1)">reload</a></li>
+        <li><img src="http://115.28.182.181:8123/2"/><p>frontColor</p><a href="javascript:reloadCaptcha(2)">reload</a></li>
     </ul>
     </div>
 </div>
