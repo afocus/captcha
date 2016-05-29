@@ -14,11 +14,11 @@ import (
 )
 
 type Captcha struct {
-	colors      []color.Color
-	strNum      int
-	modal       int
-	disturbance int
+	frontColors []color.Color
+	bkgColors   []color.Color
+	disturlvl   DisturLevel
 	font        *truetype.Font
+	size        image.Point
 }
 
 // 颜色
@@ -28,26 +28,30 @@ type Color struct {
 	B uint8
 }
 
-const (
-	NUM   = 0 // 数字
-	LOWER = 1 // 小写字母
-	UPPER = 2 // 大写字母
-	ALL   = 3 // 全部
-)
+type StrType int
 
 const (
-	NORMAL = 6
-	MEDIUM = 10
-	HIGH   = 16
+	NUM   StrType = 0 // 数字
+	LOWER         = 1 // 小写字母
+	UPPER         = 2 // 大写字母
+	ALL           = 3 // 全部
+)
+
+type DisturLevel int
+
+const (
+	NORMAL DisturLevel = 4
+	MEDIUM             = 8
+	HIGH               = 16
 )
 
 func New() *Captcha {
 	c := &Captcha{
-		strNum:      4,
-		disturbance: NORMAL,
-		modal:       NUM,
+		disturlvl: NORMAL,
+		size:      image.Point{82, 32},
 	}
-	c.colors = []color.Color{color.Black}
+	c.frontColors = []color.Color{color.Black}
+	c.bkgColors = []color.Color{color.White}
 	return c
 }
 
@@ -65,56 +69,69 @@ func (c *Captcha) SetFont(path string) error {
 	return nil
 }
 
-// SetOpt 设置配置信息
-// params
-// modal 0:纯数字 1:数字+小写字母 2:数字+大小写字母
-// disturbance 干扰 数值越大越干扰
-// strNum 验证码文字个数
-func (c *Captcha) SetOpt(strNum int, modal int, disturbance int, colors ...Color) {
-	c.strNum = strNum
-	c.modal = modal
+func (c *Captcha) SetDisturbance(d DisturLevel) {
+	if d > 0 {
+		c.disturlvl = d
+	}
+}
+
+func (c *Captcha) SetFrontColor(colors ...Color) {
 	if len(colors) > 0 {
-		c.colors = c.colors[:0]
+		c.frontColors = c.frontColors[:0]
 		for _, v := range colors {
-			c.colors = append(c.colors, color.RGBA{v.R, v.G, v.B, 255})
+			c.frontColors = append(c.frontColors, color.RGBA{v.R, v.G, v.B, 255})
 		}
 	}
-	if disturbance < 4 {
-		disturbance = 4
-	}
-	c.disturbance = disturbance
+}
 
+func (c *Captcha) SetBkgColor(colors ...Color) {
+	if len(colors) > 0 {
+		c.bkgColors = c.bkgColors[:0]
+		for _, v := range colors {
+			c.bkgColors = append(c.bkgColors, color.RGBA{v.R, v.G, v.B, 255})
+		}
+	}
+}
+
+func (c *Captcha) SetSize(w, h int) {
+	if w < 48 {
+		w = 48
+	}
+	if h < 20 {
+		h = 20
+	}
+	c.size = image.Point{w, h}
 }
 
 // 绘制背景
 func (c *Captcha) drawBkg(img *Image) {
-
+	ra := rand.New(rand.NewSource(time.Now().UnixNano()))
 	// 填充主背景色
-	//img.FillBkg(bgcolor)
+	bgcolorindex := ra.Intn(len(c.bkgColors))
+	bkg := image.NewUniform(c.bkgColors[bgcolorindex])
+	img.FillBkg(bkg)
 
 	// 待绘制图片的尺寸
 	size := img.Bounds().Size()
-	ra := rand.New(rand.NewSource(time.Now().UnixNano()))
-	co := color.RGBA{0, 0, 0, 20}
+	dlen := int(c.disturlvl)
 	// 绘制干扰斑点
-	for i := 0; i < c.disturbance; i++ {
+	for i := 0; i < dlen; i++ {
 		x := ra.Intn(size.X)
 		y := ra.Intn(size.Y)
-		r := ra.Intn(size.Y / 4)
-		img.DrawCircle(x, y, r, true, co)
+		r := ra.Intn(size.Y/20) + 1
+		colorindex := ra.Intn(len(c.frontColors))
+		img.DrawCircle(x, y, r, i%4 != 0, c.frontColors[colorindex])
 	}
-	colorindex := 0
+
 	// 绘制干扰线
-	for i := 0; i < c.disturbance; i++ {
+	for i := 0; i < dlen; i++ {
 		x := ra.Intn(size.X)
 		y := ra.Intn(size.Y)
 		o := int(math.Pow(-1, float64(i)))
 		w := ra.Intn(size.Y) * o
 		h := ra.Intn(size.Y/10) * o
-		if colorindex == len(c.colors) {
-			colorindex = 0
-		}
-		img.DrawLine(x, y, x+w, y+h, c.colors[colorindex])
+		colorindex := ra.Intn(len(c.frontColors))
+		img.DrawLine(x, y, x+w, y+h, c.frontColors[colorindex])
 		colorindex++
 	}
 
@@ -132,17 +149,16 @@ func (c *Captcha) drawString(img *Image, str string) {
 	offset := size.X/len(str) - fsize/6
 	// 文字在图形上的起点
 	p := fsize / 2
-	colorindex := 0
+
 	// 逐个绘制文字到图片上
 	for i, char := range str {
 		// 创建单个文字图片
 		// 以高为尺寸创建正方形的图形
 		str := NewImage(size.Y, size.Y)
-		if colorindex == len(c.colors) {
-			colorindex = 0
-		}
-		str.DrawString(c.font, c.colors[colorindex], string(char), float64(fsize), p, p)
-		colorindex++
+		// 随机取一个前景色
+		colorindex := r.Intn(len(c.frontColors))
+		str.DrawString(c.font, c.frontColors[colorindex], string(char), float64(fsize), p, p)
+
 		// 转换角度后的文字图形
 		r := str.Rotate(r.Float64())
 		// 计算文字位置
@@ -153,18 +169,25 @@ func (c *Captcha) drawString(img *Image, str string) {
 }
 
 // Create 生成一个验证码图片
-func (c *Captcha) Create(w, h int) (*Image, string) {
-	if h < 20 {
-		h = 20
+func (c *Captcha) Create(num int, t StrType) (*Image, string) {
+	if num <= 0 {
+		num = 4
 	}
-	if w < 60 {
-		w = 60
-	}
-	dst := NewImage(w, h)
+	dst := NewImage(c.size.X, c.size.Y)
 	c.drawBkg(dst)
-	str := string(c.randStr(c.strNum, c.modal))
+	str := string(c.randStr(num, int(t)))
 	c.drawString(dst, str)
 	return dst, str
+}
+
+func (c *Captcha) CreateCustom(str string) *Image {
+	if len(str) == 0 {
+		str = "unkown"
+	}
+	dst := NewImage(c.size.X, c.size.Y)
+	c.drawBkg(dst)
+	c.drawString(dst, str)
+	return dst
 }
 
 var fontKinds = [][]int{[]int{10, 48}, []int{26, 97}, []int{26, 65}}

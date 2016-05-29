@@ -121,7 +121,7 @@ func (img *Image) Rotate(angle float64) image.Image {
 	return nb
 }
 
-// 填充背景色
-func (img *Image) FillBkg(c color.Color) {
-	draw.Draw(img, img.Bounds(), image.NewUniform(c), image.ZP, draw.Src)
+// 填充背景
+func (img *Image) FillBkg(c image.Image) {
+	draw.Draw(img, img.Bounds(), c, image.ZP, draw.Over)
 }
