@@ -14,9 +14,11 @@
 
 ## demo
 
-![color](http://afocus.github.io/captcha/demo1.png)
+![color](http://115.28.182.181:8123/0)
 
-![sample](http://afocus.github.io/captcha/demo2.png)
+![sample](http://115.28.182.181:8123/1)
+
+![color2](http://115.28.182.181:8123/2)
 
 ## 使用 Start using it
 
