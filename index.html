@@ -3,13 +3,64 @@
 <head>
     <title></title>
     <meta charset="utf-8"/>
+    <style>
+body{margin:0;padding:0;background: #eee}
+
+.head{text-align: center;padding:80px 30px 100px;background-color: #fff;}
+.head>a{
+    padding:10px 30px;
+    border-radius: 20px;
+    color:#1aaf5d;
+    border:2px #1aaf5d solid;
+    text-decoration: none
+}
+h1{font-size: 72px;font-weight: 500}
+h1>small{font-size: 30%;display:block;color:#aaa;font-weight: 200;padding-top: 20px}
+h2{font-weight: 500}
+pre{
+    background: #fff;
+    padding:20px;
+    border-radius: 10px;
+    font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    font-size: 16px;
+}
+.body{margin: 60px auto; max-width: 720px;}
+.body:after{
+    content: "";
+    display: block;
+    clear: both
+}
+ul{list-style: none;padding:0;margin:20px}
+ul>li{float: left;width: 50%; text-align: center}
+
+
+    </style>
 </head>
 <body>
-    <div>demo</div>
-    <p>多颜色</p>
-    <p><img src="demo1.png"/></p>
-    <p>单色</p> 验证码背景色是透明的 可以自己通过css设置背景色 这样更好的和网站主体色调融合
-    <p><img src="demo2.png" style="background:#eee;border:1px #000 solid"/></p>
+<div class="head">
+    <h1>Simple <strong>Captcha</strong><small>Go package captcha implements generation of image</small></h1>
+    <a href="http://github.com/afocus/captcha">GITHUB PAGE</a>
+</div>
+
+<div class="body">
+    <div>
+        <h2>Start using it</h2>
+        <pre><code>go get github.com/afocus/captcha</code></pre>
+        
+        <h2>How to use</h2>
+        <pre><code>cap = captcha.New()
+cap.SetFont("comic.ttf")
+img,str := cap.Create(4,captcha.NUM)</code></pre>
+    </div>
+    
+    <div>
+    <h2>Demo</h2>
+    <ul>
+        <li><img src="demo1.png"/><p>simple <a href="#">reload</a></p></li>
+        <li><img src="demo1.png"/><p>complex <a href="#">reload</a></p></li>
+    </ul>
+    </div>
+</div>
     
 </body>
 </html>
