@@ -1,7 +1,5 @@
 # golang实现的验证码 golang captcha
 
-**不依赖任何第三方图形库 Does not rely on third party graphics library **
-
 
 
 ## 优点
