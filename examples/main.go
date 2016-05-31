@@ -1,6 +1,7 @@
 package main
 
 import (
+	"image/color"
 	"image/png"
 	"net/http"
 
@@ -19,8 +20,8 @@ func main() {
 
 	cap.SetSize(128, 64)
 	cap.SetDisturbance(captcha.MEDIUM)
-	cap.SetFrontColor(captcha.Color{255, 255, 255})
-	cap.SetBkgColor(captcha.Color{255, 0, 0}, captcha.Color{0, 0, 255}, captcha.Color{0, 153, 0})
+	cap.SetFrontColor(color.RGBA{255, 255, 255, 255})
+	cap.SetBkgColor(color.RGBA{255, 0, 0, 255}, color.RGBA{0, 0, 255, 255}, color.RGBA{0, 153, 0, 255})
 
 	http.HandleFunc("/r", func(w http.ResponseWriter, r *http.Request) {
 		img, str := cap.Create(6, captcha.ALL)
