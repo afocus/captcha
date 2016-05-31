@@ -21,13 +21,6 @@ type Captcha struct {
 	size        image.Point
 }
 
-// 颜色
-type Color struct {
-	R uint8
-	G uint8
-	B uint8
-}
-
 type StrType int
 
 const (
@@ -75,20 +68,20 @@ func (c *Captcha) SetDisturbance(d DisturLevel) {
 	}
 }
 
-func (c *Captcha) SetFrontColor(colors ...Color) {
+func (c *Captcha) SetFrontColor(colors ...color.Color) {
 	if len(colors) > 0 {
 		c.frontColors = c.frontColors[:0]
 		for _, v := range colors {
-			c.frontColors = append(c.frontColors, color.RGBA{v.R, v.G, v.B, 255})
+			c.frontColors = append(c.frontColors, v)
 		}
 	}
 }
 
-func (c *Captcha) SetBkgColor(colors ...Color) {
+func (c *Captcha) SetBkgColor(colors ...color.Color) {
 	if len(colors) > 0 {
 		c.bkgColors = c.bkgColors[:0]
 		for _, v := range colors {
-			c.bkgColors = append(c.bkgColors, color.RGBA{v.R, v.G, v.B, 255})
+			c.bkgColors = append(c.bkgColors, v)
 		}
 	}
 }
