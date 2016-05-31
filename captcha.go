@@ -160,11 +160,16 @@ func (c *Captcha) drawString(img *Image, str string) {
 		str.DrawString(c.font, c.frontColors[colorindex], string(char), float64(fsize), p, p)
 
 		// 转换角度后的文字图形
-		r := str.Rotate(r.Float64())
+
+		//println(r.Float64())
+		rs := str.Rotate(float64(r.Intn(60) - 30))
+		s := rs.Bounds().Size()
 		// 计算文字位置
-		clip := image.Rect(i*offset, 0, (i+1)*offset+fsize, offset+fsize)
+		left := i*offset - (s.X - size.Y)
+		top := size.Y - s.Y
+		clip := image.Rect(left, top, left+s.X, top+s.Y)
 		// 绘制到图片上
-		draw.Draw(img, clip, r, image.ZP, draw.Over)
+		draw.Draw(img, clip, rs, image.ZP, draw.Over)
 	}
 }
 
