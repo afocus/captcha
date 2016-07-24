@@ -100,7 +100,7 @@ func (img *Image) DrawCircle(xc, yc, r int, fill bool, c color.Color) {
 }
 
 // DrawString 写字
-func (img *Image) DrawString(font *truetype.Font, c color.Color, str string, fontsize float64, x, y int) {
+func (img *Image) DrawString(font *truetype.Font, c color.Color, str string, fontsize float64) {
 	ctx := freetype.NewContext()
 	// default 72dpi
 	ctx.SetDst(img)
@@ -109,7 +109,7 @@ func (img *Image) DrawString(font *truetype.Font, c color.Color, str string, fon
 	ctx.SetFontSize(fontsize)
 	ctx.SetFont(font)
 	// 写入文字的位置
-	pt := freetype.Pt(x, y+ctx.PointToFixed(fontsize).Ceil())
+	pt := freetype.Pt(0, int(-fontsize/6)+ctx.PointToFixed(fontsize).Ceil())
 	ctx.DrawString(str, pt)
 }
 
@@ -121,6 +121,27 @@ func (img *Image) Rotate(angle float64) image.Image {
 // 填充背景
 func (img *Image) FillBkg(c image.Image) {
 	draw.Draw(img, img.Bounds(), c, image.ZP, draw.Over)
+}
+
+// 水波纹, amplude=振幅, period=周期
+// copy from https://github.com/dchest/captcha/blob/master/image.go
+func (img *Image) distortTo(amplude float64, period float64) {
+	w := img.Bounds().Max.X
+	h := img.Bounds().Max.Y
+
+	oldm := img.RGBA
+
+	dx := 1.4 * math.Pi / period
+	for x := 0; x < w; x++ {
+		for y := 0; y < h; y++ {
+			xo := amplude * math.Sin(float64(y)*dx)
+			yo := amplude * math.Cos(float64(x)*dx)
+			rgba := oldm.RGBAAt(x+int(xo), y+int(yo))
+			if rgba.A > 0 {
+				oldm.SetRGBA(x, y, rgba)
+			}
+		}
+	}
 }
 
 func inBounds(b image.Rectangle, x, y float64) bool {

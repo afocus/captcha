@@ -17,7 +17,7 @@ type Captcha struct {
 	frontColors []color.Color
 	bkgColors   []color.Color
 	disturlvl   DisturLevel
-	font        *truetype.Font
+	fonts       []*truetype.Font
 	size        image.Point
 }
 
@@ -48,8 +48,8 @@ func New() *Captcha {
 	return c
 }
 
-// SetFont 设置字体
-func (c *Captcha) SetFont(path string) error {
+// AddFont 添加一个字体
+func (c *Captcha) AddFont(path string) error {
 	fontdata, erro := ioutil.ReadFile(path)
 	if erro != nil {
 		return erro
@@ -58,7 +58,20 @@ func (c *Captcha) SetFont(path string) error {
 	if erro != nil {
 		return erro
 	}
-	c.font = font
+	if c.fonts == nil {
+		c.fonts = []*truetype.Font{}
+	}
+	c.fonts = append(c.fonts, font)
+	return nil
+}
+
+// SetFont 设置字体 可以设置多个
+func (c *Captcha) SetFont(paths ...string) error {
+	for _, v := range paths {
+		if erro := c.AddFont(v); erro != nil {
+			return erro
+		}
+	}
 	return nil
 }
 
@@ -96,13 +109,22 @@ func (c *Captcha) SetSize(w, h int) {
 	c.size = image.Point{w, h}
 }
 
+func (c *Captcha) randFont() *truetype.Font {
+	return c.fonts[rand.Intn(len(c.fonts))]
+}
+
 // 绘制背景
 func (c *Captcha) drawBkg(img *Image) {
 	ra := rand.New(rand.NewSource(time.Now().UnixNano()))
-	// 填充主背景色
+	//填充主背景色
 	bgcolorindex := ra.Intn(len(c.bkgColors))
 	bkg := image.NewUniform(c.bkgColors[bgcolorindex])
 	img.FillBkg(bkg)
+}
+
+// 绘制噪点
+func (c *Captcha) drawNoises(img *Image) {
+	ra := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	// 待绘制图片的尺寸
 	size := img.Bounds().Size()
@@ -132,38 +154,50 @@ func (c *Captcha) drawBkg(img *Image) {
 
 // 绘制文字
 func (c *Captcha) drawString(img *Image, str string) {
-	// 待绘制图片的尺寸
-	size := img.Bounds().Size()
-	// 文字大小为图片高度的1/2
-	fsize := size.Y / 2
+
+	if c.fonts == nil {
+		panic("没有设置任何字体")
+	}
+	tmp := NewImage(c.size.X, c.size.Y)
+
+	// 文字大小为图片高度的 0.6
+	fsize := int(float64(c.size.Y) * 0.6)
 	// 用于生成随机角度
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
 	// 文字之间的距离
-	offset := size.X/len(str) - fsize/6
-	// 文字在图形上的起点
-	p := fsize / 2
+	// 左右各留文字的1/4大小为内部边距
+	padding := fsize / 4
+	gap := (c.size.X - padding*2) / (len(str))
 
 	// 逐个绘制文字到图片上
 	for i, char := range str {
 		// 创建单个文字图片
-		// 以高为尺寸创建正方形的图形
-		str := NewImage(size.Y, size.Y)
+		// 以文字为尺寸创建正方形的图形
+		str := NewImage(fsize, fsize)
+		// str.FillBkg(image.NewUniform(color.Black))
 		// 随机取一个前景色
 		colorindex := r.Intn(len(c.frontColors))
-		str.DrawString(c.font, c.frontColors[colorindex], string(char), float64(fsize), p, p)
+
+		//随机取一个字体
+		font := c.randFont()
+		str.DrawString(font, c.frontColors[colorindex], string(char), float64(fsize))
 
 		// 转换角度后的文字图形
-
-		//println(r.Float64())
-		rs := str.Rotate(float64(r.Intn(60) - 30))
-		s := rs.Bounds().Size()
+		rs := str.Rotate(float64(r.Intn(40) - 20))
 		// 计算文字位置
-		left := i*offset - (s.X - size.Y)
-		top := size.Y - s.Y
-		clip := image.Rect(left, top, left+s.X, top+s.Y)
+		s := rs.Bounds().Size()
+		left := i*gap + padding
+		top := (c.size.Y - s.Y) / 2
 		// 绘制到图片上
-		draw.Draw(img, clip, rs, image.ZP, draw.Over)
+		draw.Draw(tmp, image.Rect(left, top, left+s.X, top+s.Y), rs, image.ZP, draw.Over)
 	}
+	if c.size.Y >= 48 {
+		// 高度大于48添加波纹 小于48波纹影响用户识别
+		tmp.distortTo(float64(fsize)/10, 200.0)
+	}
+
+	draw.Draw(img, tmp.Bounds(), tmp, image.ZP, draw.Over)
 }
 
 // Create 生成一个验证码图片
@@ -172,9 +206,14 @@ func (c *Captcha) Create(num int, t StrType) (*Image, string) {
 		num = 4
 	}
 	dst := NewImage(c.size.X, c.size.Y)
+	//tmp := NewImage(c.size.X, c.size.Y)
 	c.drawBkg(dst)
+	c.drawNoises(dst)
+
 	str := string(c.randStr(num, int(t)))
 	c.drawString(dst, str)
+	//c.drawString(tmp, str)
+
 	return dst, str
 }
 
@@ -184,6 +223,7 @@ func (c *Captcha) CreateCustom(str string) *Image {
 	}
 	dst := NewImage(c.size.X, c.size.Y)
 	c.drawBkg(dst)
+	c.drawNoises(dst)
 	c.drawString(dst, str)
 	return dst
 }
