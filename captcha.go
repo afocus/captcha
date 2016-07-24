@@ -17,7 +17,7 @@ type Captcha struct {
 	frontColors []color.Color
 	bkgColors   []color.Color
 	disturlvl   DisturLevel
-	font        *truetype.Font
+	fonts       []*truetype.Font
 	size        image.Point
 }
 
@@ -48,8 +48,8 @@ func New() *Captcha {
 	return c
 }
 
-// SetFont 设置字体
-func (c *Captcha) SetFont(path string) error {
+// AddFont 设置字体
+func (c *Captcha) AddFont(path string) error {
 	fontdata, erro := ioutil.ReadFile(path)
 	if erro != nil {
 		return erro
@@ -58,8 +58,15 @@ func (c *Captcha) SetFont(path string) error {
 	if erro != nil {
 		return erro
 	}
-	c.font = font
+	if c.fonts == nil {
+		c.fonts = []*truetype.Font{}
+	}
+	c.fonts = append(c.fonts, font)
 	return nil
+}
+
+func (c *Captcha) RandFont() *truetype.Font {
+	return c.fonts[rand.Intn(len(c.fonts))]
 }
 
 func (c *Captcha) SetDisturbance(d DisturLevel) {
@@ -98,11 +105,17 @@ func (c *Captcha) SetSize(w, h int) {
 
 // 绘制背景
 func (c *Captcha) drawBkg(img *Image) {
-	ra := rand.New(rand.NewSource(time.Now().UnixNano()))
+	//ra := rand.New(rand.NewSource(time.Now().UnixNano()))
 	// 填充主背景色
-	bgcolorindex := ra.Intn(len(c.bkgColors))
-	bkg := image.NewUniform(c.bkgColors[bgcolorindex])
-	img.FillBkg(bkg)
+	//bgcolorindex := ra.Intn(len(c.bkgColors))
+	//bkg := image.NewUniform(c.bkgColors[bgcolorindex])
+	//img.FillBkg(bkg)
+	img.FillNoiseBkg(c.bkgColors)
+}
+
+// 绘制噪点
+func (c *Captcha) drawNoises(img *Image) {
+	ra := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	// 待绘制图片的尺寸
 	size := img.Bounds().Size()
@@ -134,14 +147,15 @@ func (c *Captcha) drawBkg(img *Image) {
 func (c *Captcha) drawString(img *Image, str string) {
 	// 待绘制图片的尺寸
 	size := img.Bounds().Size()
-	// 文字大小为图片高度的1/2
-	fsize := size.Y / 2
+	// 文字大小为图片高度的 0.65
+	fsize := int(float64(size.Y) * 0.65)
 	// 用于生成随机角度
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	// 文字之间的距离
-	offset := size.X/len(str) - fsize/6
+	gap := size.X/(len(str)+1) - fsize/6
 	// 文字在图形上的起点
-	p := fsize / 2
+	offset_y := int(float64(size.Y) * 0.2)
+	offset_x := size.X/(len(str)+1)
 
 	// 逐个绘制文字到图片上
 	for i, char := range str {
@@ -150,7 +164,10 @@ func (c *Captcha) drawString(img *Image, str string) {
 		str := NewImage(size.Y, size.Y)
 		// 随机取一个前景色
 		colorindex := r.Intn(len(c.frontColors))
-		str.DrawString(c.font, c.frontColors[colorindex], string(char), float64(fsize), p, p)
+		
+		//随机取一个字体
+		font := c.RandFont()
+		str.DrawString(font, c.frontColors[colorindex], string(char), float64(fsize), offset_x, offset_y)
 
 		// 转换角度后的文字图形
 
@@ -158,7 +175,7 @@ func (c *Captcha) drawString(img *Image, str string) {
 		rs := str.Rotate(float64(r.Intn(60) - 30))
 		s := rs.Bounds().Size()
 		// 计算文字位置
-		left := i*offset - (s.X - size.Y)
+		left := i*gap - (s.X - size.Y)
 		top := size.Y - s.Y
 		clip := image.Rect(left, top, left+s.X, top+s.Y)
 		// 绘制到图片上
@@ -172,9 +189,12 @@ func (c *Captcha) Create(num int, t StrType) (*Image, string) {
 		num = 4
 	}
 	dst := NewImage(c.size.X, c.size.Y)
+	tmp := NewImage(c.size.X, c.size.Y)
 	c.drawBkg(dst)
+	c.drawNoises(tmp);
 	str := string(c.randStr(num, int(t)))
-	c.drawString(dst, str)
+	c.drawString(tmp, str)
+	tmp.distortTo(dst,(4.0+rand.Float64()*4.0), (100.0+rand.Float64()*100.0))
 	return dst, str
 }
 
@@ -184,6 +204,7 @@ func (c *Captcha) CreateCustom(str string) *Image {
 	}
 	dst := NewImage(c.size.X, c.size.Y)
 	c.drawBkg(dst)
+	c.drawNoises(dst);
 	c.drawString(dst, str)
 	return dst
 }
