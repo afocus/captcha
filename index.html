@@ -55,13 +55,7 @@ ul>li a{border-radius: 10px;
 .pl-num{color:#0086b3}
 .pl-str{color: #1aaf5d}
     </style>
-    <script>
-        function reloadCaptcha(index){
-            var img = document.getElementById("captchas").getElementsByTagName("img")[index];
-            var d = new Date();
-            img.src = "http://115.28.182.181:8123/"+index+"?"+d.getTime();
-        }
-    </script>
+
 </head>
 <body>
 <div class="head">
@@ -84,9 +78,9 @@ cap.SetFont(<span class="pl-str">"comic.ttf"</span>)
     <div>
     <h2>Demo</h2>
     <ul id="captchas">
-        <li><img src="http://115.28.182.181:8123/0"/><p>backgroundColor</p><a href="javascript:reloadCaptcha(0)">reload</a></li>
-        <li><img src="http://115.28.182.181:8123/1"/><p>simple</p><a href="javascript:reloadCaptcha(1)">reload</a></li>
-        <li><img src="http://115.28.182.181:8123/2"/><p>frontColor</p><a href="javascript:reloadCaptcha(2)">reload</a></li>
+        <li><img src="imgs/background.png"/><p>backgroundColor</p></li>
+        <li><img src="imgs/default.png"/><p>simple</p></li>
+        <li><img src="imgs/colors.png"/><p>frontColor</p></li>
     </ul>
     </div>
 </div>
