@@ -5,8 +5,7 @@ import (
 	"image/color"
 	"image/draw"
 	"math"
-	"math/rand"
-	_ "fmt"
+
 	"github.com/golang/freetype"
 	"github.com/golang/freetype/truetype"
 )
@@ -101,7 +100,7 @@ func (img *Image) DrawCircle(xc, yc, r int, fill bool, c color.Color) {
 }
 
 // DrawString 写字
-func (img *Image) DrawString(font *truetype.Font, c color.Color, str string, fontsize float64, x, y int) {
+func (img *Image) DrawString(font *truetype.Font, c color.Color, str string, fontsize float64) {
 	ctx := freetype.NewContext()
 	// default 72dpi
 	ctx.SetDst(img)
@@ -110,7 +109,7 @@ func (img *Image) DrawString(font *truetype.Font, c color.Color, str string, fon
 	ctx.SetFontSize(fontsize)
 	ctx.SetFont(font)
 	// 写入文字的位置
-	pt := freetype.Pt(x, y+ctx.PointToFixed(fontsize).Ceil())
+	pt := freetype.Pt(0, int(-fontsize/6)+ctx.PointToFixed(fontsize).Ceil())
 	ctx.DrawString(str, pt)
 }
 
@@ -124,62 +123,25 @@ func (img *Image) FillBkg(c image.Image) {
 	draw.Draw(img, img.Bounds(), c, image.ZP, draw.Over)
 }
 
-func (img *Image) FillNoiseBkg(bkgColors []color.Color) {
-	b := img.Bounds()
-	bkgColors_count := len(bkgColors)
-	// Set up the random noise background.
-	//fmt.Printf("b.Min.X=%d,b.Min.Y=%d,b.Max.X=%d,b.Max.Y=%d\n",b.Min.X,b.Min.Y,b.Max.X,b.Max.Y)
-	//var i int = 0;
-	for y := b.Min.Y; y < b.Max.Y; y++ {
-		for x := b.Min.X; x < b.Max.X; x++ {
-			//c := 255 - uint8(rand.Intn(210))
-			test := rand.Intn(7)
-			if test == 3 {
-				//img.SetRGBA(x, y, color.RGBA{c, c, c, 255})
-				bgcolorindex := rand.Intn(bkgColors_count)
-				img.Set(x, y, bkgColors[bgcolorindex])
+// 水波纹, amplude=振幅, period=周期
+// copy from https://github.com/dchest/captcha/blob/master/image.go
+func (img *Image) distortTo(amplude float64, period float64) {
+	w := img.Bounds().Max.X
+	h := img.Bounds().Max.Y
+
+	oldm := img.RGBA
+
+	dx := 1.4 * math.Pi / period
+	for x := 0; x < w; x++ {
+		for y := 0; y < h; y++ {
+			xo := amplude * math.Sin(float64(y)*dx)
+			yo := amplude * math.Cos(float64(x)*dx)
+			rgba := oldm.RGBAAt(x+int(xo), y+int(yo))
+			if rgba.A > 0 {
+				oldm.SetRGBA(x, y, rgba)
 			}
-			//i++;
-			//img.SetRGBA(x,y,color.RGBA{255-uint8(rand.Intn(192)),255-uint8(rand.Intn(192)),255-uint8(rand.Intn(192)),255})
 		}
 	}
-}
-
-func randomBrightness(c color.RGBA, max uint8) color.RGBA {
-	minc := min3(c.R, c.G, c.B)
-	maxc := max3(c.R, c.G, c.B)
-	if maxc > max {
-		return c
-	}
-	n := rand.Intn(int(max-maxc)) - int(minc)
-	return color.RGBA{
-		uint8(int(c.R) + n),
-		uint8(int(c.G) + n),
-		uint8(int(c.B) + n),
-		uint8(c.A),
-	}
-}
-
-func min3(x, y, z uint8) (m uint8) {
-	m = x
-	if y < m {
-		m = y
-	}
-	if z < m {
-		m = z
-	}
-	return
-}
-
-func max3(x, y, z uint8) (m uint8) {
-	m = x
-	if y > m {
-		m = y
-	}
-	if z > m {
-		m = z
-	}
-	return
 }
 
 func inBounds(b image.Rectangle, x, y float64) bool {
@@ -260,27 +222,4 @@ func (r *rotate) transformRGBA() image.Image {
 		}
 	}
 	return dst
-}
-
-// 水波纹, amplude=振幅, period=周期
-// copy from https://github.com/dchest/captcha/blob/master/image.go
-func (m *Image) distortTo(targetImg *Image, amplude float64, period float64) {
-	w := m.Bounds().Max.X
-	h := m.Bounds().Max.Y
-
-	oldm := m.RGBA
-	//newm := image.NewRGBA(image.Rect(0, 0, w, h))
-
-	dx := 2.0 * math.Pi / period
-	for x := 0; x < w; x++ {
-		for y := 0; y < h; y++ {
-			xo := amplude * math.Sin(float64(y)*dx)
-			yo := amplude * math.Cos(float64(x)*dx)
-			rgba := oldm.RGBAAt(x+int(xo), y+int(yo))
-			if rgba.A>0 {
-				targetImg.RGBA.SetRGBA(x, y, rgba)
-			}
-		}
-	}
-	//m.RGBA = newm
 }
