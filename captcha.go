@@ -65,6 +65,19 @@ func (c *Captcha) AddFont(path string) error {
 	return nil
 }
 
+//AddFontFromBytes allows to load font from slice of bytes, for example, load the font packed by https://github.com/jteeuwen/go-bindata
+func (c *Captcha) AddFontFromBytes(contents []byte) error {
+	font, err := freetype.ParseFont(contents)
+	if err != nil {
+		return err
+	}
+	if c.fonts == nil {
+		c.fonts = []*truetype.Font{}
+	}
+	c.fonts = append(c.fonts, font)
+	return nil
+}
+
 // SetFont 设置字体 可以设置多个
 func (c *Captcha) SetFont(paths ...string) error {
 	for _, v := range paths {
