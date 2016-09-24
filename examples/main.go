@@ -18,6 +18,19 @@ func main() {
 		panic(err.Error())
 	}
 
+	/*
+	   //We can load font not only from localfile, but also from any []byte slice
+	   	fontContenrs, err := ioutil.ReadFile("comic.ttf")
+	   	if err != nil {
+	   		panic(err.Error())
+	   	}
+
+	   	err = cap.AddFontFromBytes(fontContenrs)
+	   	if err != nil {
+	   		panic(err.Error())
+	   	}
+	*/
+
 	cap.SetSize(128, 64)
 	cap.SetDisturbance(captcha.MEDIUM)
 	cap.SetFrontColor(color.RGBA{255, 255, 255, 255})
