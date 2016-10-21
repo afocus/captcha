@@ -22,7 +22,7 @@ var (
 func init() {
 	globalDraw.SetSize(100, 30)
 	globalDraw.Disturbance.SetNormal()
-	globalDraw.SetFrontColor(
+	globalDraw.SetFontColor(
 		color.RGBA{0, 0, 0, 255},
 		color.RGBA{255, 0, 0, 255},
 		color.RGBA{0, 255, 0, 255},

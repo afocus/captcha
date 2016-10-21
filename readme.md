@@ -1,4 +1,4 @@
-﻿# golang实现的验证码 golang captcha
+# golang实现的验证码 golang captcha
 丰富自定义设置(字体,多颜色,验证码大小,文字模式,文字数量,干扰强度)
 
 ## demo
@@ -38,11 +38,11 @@ cap.SetSize(100, 30)
 // 设置 干扰度
 cap.Disturbance.SetNormal()
 
-// 设置 字体
-cap.SetFrontColor("comic.ttf", "xxx.ttf")
+// 添加 字体
+cap.AddFont("comic.ttf", "xxx.ttf")
 
 // 设置 字体颜色
-cap.SetFrontColor(color.RGBA{255, 255, 255, 255})
+cap.SetFontColor(color.RGBA{255, 255, 255, 255})
 
 // 设置 多个 背景色，将随机使用
 cap.SetBackgroundColor(
@@ -60,14 +60,14 @@ cap.SetBackgroundColor(
 img, val := cap.CreateDigit(4)
 
 // 创建 全字母 图片
-img, val := cap.CreateAlpha(4) 
+img, val := cap.CreateAlpha(4)
 
 // 创建 字母 + 数字 图片
-img, val := cap.CreateAlphaDigit(4) 
+img, val := cap.CreateAlphaDigit(4)
 
 // 创建 自定义字符 图片
-img := cap.Create("abc123") 
-		
+img := cap.Create("abc123")
+
 
 #### 网站中如果使用? how to use for web
 

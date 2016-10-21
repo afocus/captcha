@@ -46,7 +46,7 @@ func (self *disturbance) SetHigh() {
 // 画验证码
 type Draw struct {
 	Disturbance      disturbance      // 干扰度
-	frontColors      []color.Color    // 字体色列表
+	fontColors       []color.Color    // 字体色列表
 	backgroundColors []color.Color    // 背景色列表
 	fonts            []*truetype.Font // 字体
 	size             image.Point      // 图片大小
@@ -55,7 +55,7 @@ type Draw struct {
 // 验证码
 func New() *Draw {
 	captcha := &Draw{
-		frontColors:      []color.Color{color.Black},      // 黑色
+		fontColors:       []color.Color{color.Black},      // 黑色
 		backgroundColors: []color.Color{color.White},      // 白色
 		fonts:            []*truetype.Font{globalDefFont}, // 默认字体
 		size:             image.Point{150, 30},
@@ -137,9 +137,9 @@ func (self *Draw) AddFontFromBytes(contents []byte) error {
 }
 
 // 设置 字体颜色【覆盖】
-func (self *Draw) SetFrontColor(colors ...color.Color) *Draw {
+func (self *Draw) SetFontColor(colors ...color.Color) *Draw {
 	if len(colors) > 0 {
-		self.frontColors = colors
+		self.fontColors = colors
 	}
 	return self
 }
@@ -182,8 +182,8 @@ func (self *Draw) drawDisturbance(img *Image) {
 		x := rand.Intn(size.X)
 		y := rand.Intn(size.Y)
 		r := rand.Intn(size.Y/20) + 1
-		colorindex := rand.Intn(len(self.frontColors))
-		img.DrawCircle(x, y, r, i%4 != 0, self.frontColors[colorindex])
+		colorindex := rand.Intn(len(self.fontColors))
+		img.DrawCircle(x, y, r, i%4 != 0, self.fontColors[colorindex])
 	}
 
 	// 绘制干扰线
@@ -193,8 +193,8 @@ func (self *Draw) drawDisturbance(img *Image) {
 		o := int(math.Pow(-1, float64(i)))
 		w := rand.Intn(size.Y) * o
 		h := rand.Intn(size.Y/10) * o
-		colorIndex := rand.Intn(len(self.frontColors))
-		img.DrawLine(x, y, x+w, y+h, self.frontColors[colorIndex])
+		colorIndex := rand.Intn(len(self.fontColors))
+		img.DrawLine(x, y, x+w, y+h, self.fontColors[colorIndex])
 		colorIndex++
 	}
 }
@@ -209,12 +209,12 @@ func (self *Draw) drawString(img *Image, str string) {
 
 	// 逐个绘制文字到图片上
 	for i, char := range str {
-		str := NewImage(fsize, fsize)                  // 创建单个文字图片，以文字为尺寸创建正方形的图形
-		colorIndex := rand.Intn(len(self.frontColors)) // 随机取一个前景色
+		str := NewImage(fsize, fsize)                 // 创建单个文字图片，以文字为尺寸创建正方形的图形
+		colorIndex := rand.Intn(len(self.fontColors)) // 随机取一个前景色
 
 		// 随机取一个字体
 		font := self.fonts[rand.Intn(len(self.fonts))]
-		str.DrawString(font, self.frontColors[colorIndex], string(char), float64(fsize))
+		str.DrawString(font, self.fontColors[colorIndex], string(char), float64(fsize))
 
 		// 转换角度后的文字图形
 		rs := str.Rotate(float64(rand.Intn(40) - 20))
