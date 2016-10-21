@@ -3,7 +3,7 @@
 
 ## demo
 
-![color](http://afocus.github.io/captcha/imgs/background.png)![sample](http://afocus.github.io/captcha/imgs/default.png)![color2](http://afocus.github.io/captcha/imgs/colors.png)
+![color](https://raw.githubusercontent.com/qAison/captcha/master/_examples/1.png)![sample](https://raw.githubusercontent.com/qAison/captcha/master/_examples/2.png)![color2](https://raw.githubusercontent.com/qAison/captcha/master/_examples/3.png)
 
 ## 使用 Start using it
 
