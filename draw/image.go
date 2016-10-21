@@ -1,14 +1,26 @@
-package captcha
+package draw
 
 import (
+	"bytes"
 	"image"
 	"image/color"
 	"image/draw"
+	"image/png"
+	"io"
 	"math"
 
 	"github.com/golang/freetype"
 	"github.com/golang/freetype/truetype"
 )
+
+func sign(x int) int {
+	if x > 0 {
+		return 1
+	}
+	return -1
+}
+
+//-----------------------------------------------------------------------------------------------------------//
 
 // Image 图片
 type Image struct {
@@ -21,17 +33,24 @@ func NewImage(w, h int) *Image {
 	return img
 }
 
-func sign(x int) int {
-	if x > 0 {
-		return 1
+// 生成 PNG 图片
+func (self *Image) EncodedPNG() ([]byte, error) {
+	buf := new(bytes.Buffer)
+	if err := png.Encode(buf, self); err != nil {
+		return nil, err
 	}
-	return -1
+	return buf.Bytes(), nil
+}
+
+// 写入到 io
+func (self *Image) WriteTo(w io.Writer) error {
+	return png.Encode(w, self)
 }
 
 // DrawLine 画直线
-// Bresenham算法(https://zh.wikipedia.org/zh-cn/布雷森漢姆直線演算法)
+// Bresenham 算法 (https://zh.wikipedia.org/zh-cn/布雷森漢姆直線演算法)
 // x1,y1 起点 x2,y2终点
-func (img *Image) DrawLine(x1, y1, x2, y2 int, c color.Color) {
+func (self *Image) DrawLine(x1, y1, x2, y2 int, c color.Color) {
 	dx, dy, flag := int(math.Abs(float64(x2-x1))),
 		int(math.Abs(float64(y2-y1))),
 		false
@@ -53,29 +72,29 @@ func (img *Image) DrawLine(x1, y1, x2, y2 int, c color.Color) {
 			d += n2dydx
 		}
 		if flag {
-			img.Set(y1, x1, c)
+			self.Set(y1, x1, c)
 		} else {
-			img.Set(x1, y1, c)
+			self.Set(x1, y1, c)
 		}
 		x1 += ix
 	}
 }
 
-func (img *Image) drawCircle8(xc, yc, x, y int, c color.Color) {
-	img.Set(xc+x, yc+y, c)
-	img.Set(xc-x, yc+y, c)
-	img.Set(xc+x, yc-y, c)
-	img.Set(xc-x, yc-y, c)
-	img.Set(xc+y, yc+x, c)
-	img.Set(xc-y, yc+x, c)
-	img.Set(xc+y, yc-x, c)
-	img.Set(xc-y, yc-x, c)
+func (self *Image) drawCircle8(xc, yc, x, y int, c color.Color) {
+	self.Set(xc+x, yc+y, c)
+	self.Set(xc-x, yc+y, c)
+	self.Set(xc+x, yc-y, c)
+	self.Set(xc-x, yc-y, c)
+	self.Set(xc+y, yc+x, c)
+	self.Set(xc-y, yc+x, c)
+	self.Set(xc+y, yc-x, c)
+	self.Set(xc-y, yc-x, c)
 }
 
 // DrawCircle 画圆
 // xc,yc 圆心坐标 r 半径 fill是否填充颜色
-func (img *Image) DrawCircle(xc, yc, r int, fill bool, c color.Color) {
-	size := img.Bounds().Size()
+func (self *Image) DrawCircle(xc, yc, r int, fill bool, c color.Color) {
+	size := self.Bounds().Size()
 	// 如果圆在图片可见区域外，直接退出
 	if xc+r < 0 || xc-r >= size.X || yc+r < 0 || yc-r >= size.Y {
 		return
@@ -84,10 +103,10 @@ func (img *Image) DrawCircle(xc, yc, r int, fill bool, c color.Color) {
 	for x <= y {
 		if fill {
 			for yi := x; yi <= y; yi++ {
-				img.drawCircle8(xc, yc, x, yi, c)
+				self.drawCircle8(xc, yc, x, yi, c)
 			}
 		} else {
-			img.drawCircle8(xc, yc, x, y, c)
+			self.drawCircle8(xc, yc, x, y, c)
 		}
 		if d < 0 {
 			d = d + 4*x + 6
@@ -100,11 +119,11 @@ func (img *Image) DrawCircle(xc, yc, r int, fill bool, c color.Color) {
 }
 
 // DrawString 写字
-func (img *Image) DrawString(font *truetype.Font, c color.Color, str string, fontsize float64) {
+func (self *Image) DrawString(font *truetype.Font, c color.Color, str string, fontsize float64) {
 	ctx := freetype.NewContext()
 	// default 72dpi
-	ctx.SetDst(img)
-	ctx.SetClip(img.Bounds())
+	ctx.SetDst(self)
+	ctx.SetClip(self.Bounds())
 	ctx.SetSrc(image.NewUniform(c))
 	ctx.SetFontSize(fontsize)
 	ctx.SetFont(font)
@@ -114,22 +133,22 @@ func (img *Image) DrawString(font *truetype.Font, c color.Color, str string, fon
 }
 
 // Rotate 旋转
-func (img *Image) Rotate(angle float64) image.Image {
-	return new(rotate).Rotate(angle, img.RGBA).transformRGBA()
+func (self *Image) Rotate(angle float64) image.Image {
+	return new(rotate).Rotate(angle, self.RGBA).transformRGBA()
 }
 
 // 填充背景
-func (img *Image) FillBkg(c image.Image) {
-	draw.Draw(img, img.Bounds(), c, image.ZP, draw.Over)
+func (self *Image) FillBackground(c image.Image) {
+	draw.Draw(self, self.Bounds(), c, image.ZP, draw.Over)
 }
 
 // 水波纹, amplude=振幅, period=周期
 // copy from https://github.com/dchest/captcha/blob/master/image.go
-func (img *Image) distortTo(amplude float64, period float64) {
-	w := img.Bounds().Max.X
-	h := img.Bounds().Max.Y
+func (self *Image) distortTo(amplude float64, period float64) {
+	w := self.Bounds().Max.X
+	h := self.Bounds().Max.Y
 
-	oldm := img.RGBA
+	oldm := self.RGBA
 
 	dx := 1.4 * math.Pi / period
 	for x := 0; x < w; x++ {
@@ -154,6 +173,8 @@ func inBounds(b image.Rectangle, x, y float64) bool {
 	return true
 }
 
+//-----------------------------------------------------------------------------------------------------------//
+
 type rotate struct {
 	dx   float64
 	dy   float64
@@ -168,8 +189,8 @@ func radian(angle float64) float64 {
 	return angle * math.Pi / 180.0
 }
 
-func (r *rotate) Rotate(angle float64, src *image.RGBA) *rotate {
-	r.src = src
+func (self *rotate) Rotate(angle float64, src *image.RGBA) *rotate {
+	self.src = src
 	srsize := src.Bounds().Size()
 	width, height := srsize.X, srsize.Y
 
@@ -181,38 +202,37 @@ func (r *rotate) Rotate(angle float64, src *image.RGBA) *rotate {
 	srcx3, srcy3 := -srcwp, -srchp
 	srcx4, srcy4 := srcwp, -srchp
 
-	r.sin, r.cos = math.Sincos(radian(angle))
+	self.sin, self.cos = math.Sincos(radian(angle))
 	// 旋转后的四角坐标
-	desx1, desy1 := r.cos*srcx1+r.sin*srcy1, -r.sin*srcx1+r.cos*srcy1
-	desx2, desy2 := r.cos*srcx2+r.sin*srcy2, -r.sin*srcx2+r.cos*srcy2
-	desx3, desy3 := r.cos*srcx3+r.sin*srcy3, -r.sin*srcx3+r.cos*srcy3
-	desx4, desy4 := r.cos*srcx4+r.sin*srcy4, -r.sin*srcx4+r.cos*srcy4
+	desx1, desy1 := self.cos*srcx1+self.sin*srcy1, -self.sin*srcx1+self.cos*srcy1
+	desx2, desy2 := self.cos*srcx2+self.sin*srcy2, -self.sin*srcx2+self.cos*srcy2
+	desx3, desy3 := self.cos*srcx3+self.sin*srcy3, -self.sin*srcx3+self.cos*srcy3
+	desx4, desy4 := self.cos*srcx4+self.sin*srcy4, -self.sin*srcx4+self.cos*srcy4
 
 	// 新的高度很宽度
-	r.neww = math.Max(math.Abs(desx4-desx1), math.Abs(desx3-desx2)) + 0.5
-	r.newh = math.Max(math.Abs(desy4-desy1), math.Abs(desy3-desy2)) + 0.5
-	r.dx = -0.5*r.neww*r.cos - 0.5*r.newh*r.sin + srcwp
-	r.dy = 0.5*r.neww*r.sin - 0.5*r.newh*r.cos + srchp
-	return r
+	self.neww = math.Max(math.Abs(desx4-desx1), math.Abs(desx3-desx2)) + 0.5
+	self.newh = math.Max(math.Abs(desy4-desy1), math.Abs(desy3-desy2)) + 0.5
+	self.dx = -0.5*self.neww*self.cos - 0.5*self.newh*self.sin + srcwp
+	self.dy = 0.5*self.neww*self.sin - 0.5*self.newh*self.cos + srchp
+	return self
 }
 
-func (r *rotate) pt(x, y int) (float64, float64) {
-	return float64(-y)*r.sin + float64(x)*r.cos + r.dy,
-		float64(y)*r.cos + float64(x)*r.sin + r.dx
+func (self *rotate) pt(x, y int) (float64, float64) {
+	return float64(-y)*self.sin + float64(x)*self.cos + self.dy,
+		float64(y)*self.cos + float64(x)*self.sin + self.dx
 }
 
-func (r *rotate) transformRGBA() image.Image {
-
-	srcb := r.src.Bounds()
-	b := image.Rect(0, 0, int(r.neww), int(r.newh))
+func (self *rotate) transformRGBA() image.Image {
+	srcb := self.src.Bounds()
+	b := image.Rect(0, 0, int(self.neww), int(self.newh))
 	dst := image.NewRGBA(b)
 
 	for y := b.Min.Y; y < b.Max.Y; y++ {
 		for x := b.Min.X; x < b.Max.X; x++ {
-			sx, sy := r.pt(x, y)
+			sx, sy := self.pt(x, y)
 			if inBounds(srcb, sx, sy) {
 				// 消除锯齿填色
-				c := bili.RGBA(r.src, sx, sy)
+				c := bili.RGBA(self.src, sx, sy)
 				off := (y-dst.Rect.Min.Y)*dst.Stride + (x-dst.Rect.Min.X)*4
 				dst.Pix[off+0] = c.R
 				dst.Pix[off+1] = c.G
@@ -223,3 +243,5 @@ func (r *rotate) transformRGBA() image.Image {
 	}
 	return dst
 }
+
+//-----------------------------------------------------------------------------------------------------------//

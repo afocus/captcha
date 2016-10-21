@@ -1,14 +1,5 @@
-# golang实现的验证码 golang captcha
-
-
-
-## 优点
-
-1. 使用简单
-2. 不依赖第三方图形库 直接go get 就Ok
-3. 丰富自定义设置(字体,多颜色,验证码大小,文字模式,文字数量,干扰强度)
-
-
+﻿# golang实现的验证码 golang captcha
+丰富自定义设置(字体,多颜色,验证码大小,文字模式,文字数量,干扰强度)
 
 ## demo
 
@@ -18,53 +9,69 @@
 
 Download and install it:
 ```
-go get github.com/afocus/captcha
+go get github.com/qAison/captcha
 ```
-**必须设置font**
+
 
 #### 最简单的示例 sample use
 
 ```go
-cap = captcha.New()
-// 设置字体
-cap.SetFont("comic.ttf")
-// 创建验证码 4个字符 captcha.NUM 字符模式数字类型
-// 返回验证码图像对象以及验证码字符串 后期可以对字符串进行对比 判断验证
-img,str := cap.Create(4,captcha.NUM)
+// 验证码 ID
+id := captcha.New()
+
+oFile, _ := os.Create(id+".png")
+defer oFile.Close()
+
+// 写入文件
+captcha.WriteImage(oFile, id)
+
 ```
 
 #### 设置 set options
 
 ```go
-cap = captcha.New()
-// 可以设置多个字体 或使用cap.AddFont("xx.ttf")追加
-cap.SetFont("comic.ttf", "xxx.ttf")
-// 设置验证码大小
-cap.SetSize(128, 64)
-// 设置干扰强度
-cap.SetDisturbance(captcha.MEDIUM)
-// 设置前景色 可以多个 随机替换文字颜色 默认黑色
+cap := draw.New()
+
+// 设置 图片大小
+cap.SetSize(100, 30)
+
+// 设置 干扰度
+cap.Disturbance.SetNormal()
+
+// 设置 字体
+cap.SetFrontColor("comic.ttf", "xxx.ttf")
+
+// 设置 字体颜色
 cap.SetFrontColor(color.RGBA{255, 255, 255, 255})
-// 设置背景色 可以多个 随机替换背景色 默认白色
-cap.SetBkgColor(color.RGBA{255, 0, 0, 255}, color.RGBA{0, 0, 255, 255}, color.RGBA{0, 153, 0, 255})
 
-img,str := cap.Create(4,captcha.NUM)
-img1,str1 := cap.Create(6,captcha.ALL)
-```
+// 设置 多个 背景色，将随机使用
+cap.SetBackgroundColor(
+    color.RGBA{255, 0, 0, 255},
+    color.RGBA{0, 0, 255, 255},
+    color.RGBA{0, 153, 0, 255},
+    color.RGBA{185, 123, 131, 255},
+    color.RGBA{185, 123, 43, 255},
+    color.RGBA{82, 146, 114, 255},
+    color.RGBA{82, 69, 114, 255},
+    color.RGBA{22, 69, 114, 255},
+)
 
-#### 自定义字符串 custom captcha words
+// 创建 全数字 图片
+img, val := cap.CreateDigit(4)
 
-```go
-cap = captcha.New()
-// 设置字体
-cap.SetFont("comic.ttf")
-img := cap.CreateCustom("hello")
-```
+// 创建 全字母 图片
+img, val := cap.CreateAlpha(4) 
 
+// 创建 字母 + 数字 图片
+img, val := cap.CreateAlphaDigit(4) 
+
+// 创建 自定义字符 图片
+img := cap.Create("abc123") 
+		
 
 #### 网站中如果使用? how to use for web
 
-look `examples/main.go`
+look `_examples/web/main.go`
 
 
 
