@@ -1,4 +1,4 @@
-package captcha
+package draw
 
 // Bilinear Interpolation 双线性插值
 // 引用自 code.google.com/p/graphics-go/interp

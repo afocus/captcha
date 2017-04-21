@@ -1,260 +1,151 @@
 package captcha
 
 import (
-	"github.com/golang/freetype"
-	"github.com/golang/freetype/truetype"
-
-	"image"
+	"errors"
 	"image/color"
-	"image/draw"
-	"io/ioutil"
-	"math"
-	"math/rand"
-	"time"
+	"io"
+	"strings"
+
+	"github.com/qAison/captcha/draw"
 )
 
-type Captcha struct {
-	frontColors []color.Color
-	bkgColors   []color.Color
-	disturlvl   DisturLevel
-	fonts       []*truetype.Font
-	size        image.Point
-}
+var (
+	ErrNotFound = errors.New("captcha: id not found")
 
-type StrType int
-
-const (
-	NUM   StrType = 0 // 数字
-	LOWER         = 1 // 小写字母
-	UPPER         = 2 // 大写字母
-	ALL           = 3 // 全部
+	globalStore    = NewMemoryStore(60)
+	globalDraw     = draw.New()
+	globalGenValue = draw.RandAlphaDigit
+	globalIdLen    = 32
+	globalValueLen = 4
 )
 
-type DisturLevel int
-
-const (
-	NORMAL DisturLevel = 4
-	MEDIUM             = 8
-	HIGH               = 16
-)
-
-func New() *Captcha {
-	c := &Captcha{
-		disturlvl: NORMAL,
-		size:      image.Point{82, 32},
-	}
-	c.frontColors = []color.Color{color.Black}
-	c.bkgColors = []color.Color{color.White}
-	return c
+func init() {
+	globalDraw.SetSize(100, 30)
+	globalDraw.Disturbance.SetNormal()
+	globalDraw.SetFontColor(
+		color.RGBA{0, 0, 0, 255},
+		color.RGBA{255, 0, 0, 255},
+		color.RGBA{0, 255, 0, 255},
+		color.RGBA{0, 0, 255, 255},
+		color.RGBA{255, 0, 255, 255},
+		color.RGBA{72, 72, 72, 255},
+		color.RGBA{255, 0, 204, 255},
+		color.RGBA{255, 102, 51, 255},
+		color.RGBA{255, 153, 51, 255},
+		color.RGBA{204, 0, 204, 255},
+		color.RGBA{153, 153, 204, 255},
+		color.RGBA{51, 102, 255, 255},
+	)
+	globalDraw.SetBackgroundColor(
+		color.RGBA{255, 255, 255, 255}, // 白色
+	)
 }
 
-// AddFont 添加一个字体
-func (c *Captcha) AddFont(path string) error {
-	fontdata, erro := ioutil.ReadFile(path)
-	if erro != nil {
-		return erro
-	}
-	font, erro := freetype.ParseFont(fontdata)
-	if erro != nil {
-		return erro
-	}
-	if c.fonts == nil {
-		c.fonts = []*truetype.Font{}
-	}
-	c.fonts = append(c.fonts, font)
-	return nil
+//-----------------------------------------------------------------------------------------------------------//
+
+// 设置 缓存
+func SetStore(store Store) {
+	globalStore = store
 }
 
-//AddFontFromBytes allows to load font from slice of bytes, for example, load the font packed by https://github.com/jteeuwen/go-bindata
-func (c *Captcha) AddFontFromBytes(contents []byte) error {
-	font, err := freetype.ParseFont(contents)
-	if err != nil {
-		return err
-	}
-	if c.fonts == nil {
-		c.fonts = []*truetype.Font{}
-	}
-	c.fonts = append(c.fonts, font)
-	return nil
+// 设置 验证码 画图 对象
+func SetDraw(capt *draw.Draw) {
+	globalDraw = capt
 }
 
-// SetFont 设置字体 可以设置多个
-func (c *Captcha) SetFont(paths ...string) error {
-	for _, v := range paths {
-		if erro := c.AddFont(v); erro != nil {
-			return erro
-		}
-	}
-	return nil
+// 设置 生成 验证码 的值为 全数字
+func SetGenValueDigit() {
+	globalGenValue = draw.RandDigit
 }
 
-func (c *Captcha) SetDisturbance(d DisturLevel) {
-	if d > 0 {
-		c.disturlvl = d
+// 设置 生成 验证码 的值为 全字母
+func SetGenValueAlpha() {
+	globalGenValue = draw.RandAlpha
+}
+
+// 设置 生成 验证码 的值为 字母 + 数字
+func SetGenValueAlphaDigit() {
+	globalGenValue = draw.RandAlphaDigit
+}
+
+// 设置 生成 验证码 ID的长度
+func SetGenIdLen(length int) {
+	if length > 0 {
+		globalIdLen = length
 	}
 }
 
-func (c *Captcha) SetFrontColor(colors ...color.Color) {
-	if len(colors) > 0 {
-		c.frontColors = c.frontColors[:0]
-		for _, v := range colors {
-			c.frontColors = append(c.frontColors, v)
-		}
+// 设置 生成 验证码 值的长度
+func SetGenValueLen(length int) {
+	if length > 0 {
+		globalValueLen = length
 	}
 }
 
-func (c *Captcha) SetBkgColor(colors ...color.Color) {
-	if len(colors) > 0 {
-		c.bkgColors = c.bkgColors[:0]
-		for _, v := range colors {
-			c.bkgColors = append(c.bkgColors, v)
-		}
+//-----------------------------------------------------------------------------------------------------------//
+
+// 默认 值 长度
+func New() (id string) {
+	return NewLen(globalValueLen)
+}
+
+// 指定 值 长度
+func NewLen(length int) (id string) {
+	id = draw.RandAlphaDigit(globalIdLen)
+	globalStore.Set(id, globalGenValue(length))
+	return
+}
+
+//-----------------------------------------------------------------------------------------------------------//
+
+// 刷新指定 ID 的值【过期后将不能 重新刷新】
+func Reload(id string) bool {
+	value := globalStore.Get(id)
+	if value == "" {
+		return false
+	}
+	globalStore.Set(id, globalGenValue(len(value)))
+	return true
+}
+
+// 刷新指定 ID 的值，不存在时，自动生成
+func ReloadGen(id string, length int) {
+	if value := globalStore.Get(id); value != "" {
+		length = len(value)
+	}
+	globalStore.Set(id, globalGenValue(length))
+}
+
+//-----------------------------------------------------------------------------------------------------------//
+
+// 获取 PNG图片 字节
+func GetImage(id string) ([]byte, error) {
+	value := globalStore.Get(id)
+	if value == "" {
+		return nil, ErrNotFound
+	}
+
+	return globalDraw.Create(value).EncodedPNG()
+}
+
+// 图片写入 IO
+func WriteImage(w io.Writer, id string) error {
+	value := globalStore.Get(id)
+	if value == "" {
+		return ErrNotFound
+	}
+	return globalDraw.Create(value).WriteTo(w)
+}
+
+//-----------------------------------------------------------------------------------------------------------//
+
+// 校验【不区分大小写】
+func Verify(id, value string) bool {
+	if val := globalStore.Get(id); val == "" {
+		return false
+	} else {
+		return strings.ToLower(value) == strings.ToLower(val)
 	}
 }
 
-func (c *Captcha) SetSize(w, h int) {
-	if w < 48 {
-		w = 48
-	}
-	if h < 20 {
-		h = 20
-	}
-	c.size = image.Point{w, h}
-}
-
-func (c *Captcha) randFont() *truetype.Font {
-	return c.fonts[rand.Intn(len(c.fonts))]
-}
-
-// 绘制背景
-func (c *Captcha) drawBkg(img *Image) {
-	ra := rand.New(rand.NewSource(time.Now().UnixNano()))
-	//填充主背景色
-	bgcolorindex := ra.Intn(len(c.bkgColors))
-	bkg := image.NewUniform(c.bkgColors[bgcolorindex])
-	img.FillBkg(bkg)
-}
-
-// 绘制噪点
-func (c *Captcha) drawNoises(img *Image) {
-	ra := rand.New(rand.NewSource(time.Now().UnixNano()))
-
-	// 待绘制图片的尺寸
-	size := img.Bounds().Size()
-	dlen := int(c.disturlvl)
-	// 绘制干扰斑点
-	for i := 0; i < dlen; i++ {
-		x := ra.Intn(size.X)
-		y := ra.Intn(size.Y)
-		r := ra.Intn(size.Y/20) + 1
-		colorindex := ra.Intn(len(c.frontColors))
-		img.DrawCircle(x, y, r, i%4 != 0, c.frontColors[colorindex])
-	}
-
-	// 绘制干扰线
-	for i := 0; i < dlen; i++ {
-		x := ra.Intn(size.X)
-		y := ra.Intn(size.Y)
-		o := int(math.Pow(-1, float64(i)))
-		w := ra.Intn(size.Y) * o
-		h := ra.Intn(size.Y/10) * o
-		colorindex := ra.Intn(len(c.frontColors))
-		img.DrawLine(x, y, x+w, y+h, c.frontColors[colorindex])
-		colorindex++
-	}
-
-}
-
-// 绘制文字
-func (c *Captcha) drawString(img *Image, str string) {
-
-	if c.fonts == nil {
-		panic("没有设置任何字体")
-	}
-	tmp := NewImage(c.size.X, c.size.Y)
-
-	// 文字大小为图片高度的 0.6
-	fsize := int(float64(c.size.Y) * 0.6)
-	// 用于生成随机角度
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-
-	// 文字之间的距离
-	// 左右各留文字的1/4大小为内部边距
-	padding := fsize / 4
-	gap := (c.size.X - padding*2) / (len(str))
-
-	// 逐个绘制文字到图片上
-	for i, char := range str {
-		// 创建单个文字图片
-		// 以文字为尺寸创建正方形的图形
-		str := NewImage(fsize, fsize)
-		// str.FillBkg(image.NewUniform(color.Black))
-		// 随机取一个前景色
-		colorindex := r.Intn(len(c.frontColors))
-
-		//随机取一个字体
-		font := c.randFont()
-		str.DrawString(font, c.frontColors[colorindex], string(char), float64(fsize))
-
-		// 转换角度后的文字图形
-		rs := str.Rotate(float64(r.Intn(40) - 20))
-		// 计算文字位置
-		s := rs.Bounds().Size()
-		left := i*gap + padding
-		top := (c.size.Y - s.Y) / 2
-		// 绘制到图片上
-		draw.Draw(tmp, image.Rect(left, top, left+s.X, top+s.Y), rs, image.ZP, draw.Over)
-	}
-	if c.size.Y >= 48 {
-		// 高度大于48添加波纹 小于48波纹影响用户识别
-		tmp.distortTo(float64(fsize)/10, 200.0)
-	}
-
-	draw.Draw(img, tmp.Bounds(), tmp, image.ZP, draw.Over)
-}
-
-// Create 生成一个验证码图片
-func (c *Captcha) Create(num int, t StrType) (*Image, string) {
-	if num <= 0 {
-		num = 4
-	}
-	dst := NewImage(c.size.X, c.size.Y)
-	//tmp := NewImage(c.size.X, c.size.Y)
-	c.drawBkg(dst)
-	c.drawNoises(dst)
-
-	str := string(c.randStr(num, int(t)))
-	c.drawString(dst, str)
-	//c.drawString(tmp, str)
-
-	return dst, str
-}
-
-func (c *Captcha) CreateCustom(str string) *Image {
-	if len(str) == 0 {
-		str = "unkown"
-	}
-	dst := NewImage(c.size.X, c.size.Y)
-	c.drawBkg(dst)
-	c.drawNoises(dst)
-	c.drawString(dst, str)
-	return dst
-}
-
-var fontKinds = [][]int{[]int{10, 48}, []int{26, 97}, []int{26, 65}}
-
-// 生成随机字符串
-// size 个数 kind 模式
-func (c *Captcha) randStr(size int, kind int) []byte {
-	ikind, result := kind, make([]byte, size)
-	isAll := kind > 2 || kind < 0
-	rand.Seed(time.Now().UnixNano())
-	for i := 0; i < size; i++ {
-		if isAll {
-			ikind = rand.Intn(3)
-		}
-		scope, base := fontKinds[ikind][0], fontKinds[ikind][1]
-		result[i] = uint8(base + rand.Intn(scope))
-	}
-	return result
-}
+//-----------------------------------------------------------------------------------------------------------//
