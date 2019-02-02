@@ -24,18 +24,18 @@ type Captcha struct {
 type StrType int
 
 const (
-	NUM   StrType = 0 // 数字
-	LOWER         = 1 // 小写字母
-	UPPER         = 2 // 大写字母
-	ALL           = 3 // 全部
+	NUM   StrType = iota // 数字
+	LOWER                // 小写字母
+	UPPER                // 大写字母
+	ALL                  // 全部
 )
 
 type DisturLevel int
 
 const (
 	NORMAL DisturLevel = 4
-	MEDIUM             = 8
-	HIGH               = 16
+	MEDIUM DisturLevel = 8
+	HIGH   DisturLevel = 16
 )
 
 func New() *Captcha {
