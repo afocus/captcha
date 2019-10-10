@@ -28,6 +28,7 @@ const (
 	LOWER                // 小写字母
 	UPPER                // 大写字母
 	ALL                  // 全部
+	CLEAR                // 去除部分易混淆的字符
 )
 
 type DisturLevel int
@@ -242,6 +243,7 @@ func (c *Captcha) CreateCustom(str string) *Image {
 }
 
 var fontKinds = [][]int{[]int{10, 48}, []int{26, 97}, []int{26, 65}}
+var letters = []byte("34578acdefghjkmnpqstwxyABCDEFGHJKMNPQRSVWXY")
 
 // 生成随机字符串
 // size 个数 kind 模式
@@ -255,6 +257,10 @@ func (c *Captcha) randStr(size int, kind int) []byte {
 		}
 		scope, base := fontKinds[ikind][0], fontKinds[ikind][1]
 		result[i] = uint8(base + rand.Intn(scope))
+		// 不易混淆字符模式：重新生成字符
+		if kind == 4 {
+			result[i] = letters[rand.Intn(len(letters))]
+		}
 	}
 	return result
 }
