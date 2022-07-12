@@ -224,7 +224,7 @@ func (c *Captcha) Create(num int, t StrType) (*Image, string) {
 	c.drawBkg(dst)
 	c.drawNoises(dst)
 
-	str := string(c.randStr(num, int(t)))
+	str := string(c.GenerateCode(num, int(t)))
 	c.drawString(dst, str)
 	//c.drawString(tmp, str)
 
@@ -245,9 +245,9 @@ func (c *Captcha) CreateCustom(str string) *Image {
 var fontKinds = [][]int{[]int{10, 48}, []int{26, 97}, []int{26, 65}}
 var letters = []byte("34578acdefghjkmnpqstwxyABCDEFGHJKMNPQRSVWXY")
 
-// 生成随机字符串
+// GenerateCode 生成随机字符串
 // size 个数 kind 模式
-func (c *Captcha) randStr(size int, kind int) []byte {
+func (c *Captcha) GenerateCode(size int, kind int) []byte {
 	ikind, result := kind, make([]byte, size)
 	isAll := kind > 2 || kind < 0
 	rand.Seed(time.Now().UnixNano())
