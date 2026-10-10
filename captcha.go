@@ -233,7 +233,7 @@ func (c *Captcha) Create(num int, t StrType) (*Image, string) {
 
 func (c *Captcha) CreateCustom(str string) *Image {
 	if len(str) == 0 {
-		str = "unkown"
+		str = "unknown"
 	}
 	dst := NewImage(c.size.X, c.size.Y)
 	c.drawBkg(dst)
